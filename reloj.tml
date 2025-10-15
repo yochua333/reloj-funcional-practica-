@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reloj — cambia color cada hora</title>
+  <style>
+    :root{ --bg:#0b1020; --fg:#fff; }
+    html,body{ height:100%; margin:0; }
+    body{
+      display:flex; align-items:center; justify-content:center;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      background: var(--bg);
+      color: var(--fg);
+      transition: background-color 900ms ease, background 900ms ease;
+    }
+    .card{
+      text-align:center;
+      padding:32px 40px;
+      border-radius:18px;
+      backdrop-filter: blur(6px) saturate(1.2);
+      box-shadow: 0 10px 30px rgba(2,6,23,0.55);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.06));
+      min-width:260px;
+    }
+    .time{
+      font-size:64px; font-weight:700; letter-spacing:2px; margin:0;
+    }
+    .date{
+      margin-top:8px; color:rgba(255,255,255,0.85); font-weight:600;
+    }
+    .meta{ margin-top:12px; font-size:13px; color:rgba(255,255,255,0.7); }
+    .controls{ margin-top:14px; display:flex; gap:8px; justify-content:center; }
+    button{ padding:8px 12px; border-radius:10px; border:0; cursor:pointer; font-weight:600; }
+    button.tog{ background:rgba(255,255,255,0.08); color:inherit; }
+    /* small screens */
+    @media (max-width:420px){ .time{ font-size:44px } .card{ padding:22px } }
+  </style>
+</head>
+<body>
+  <div class="card" role="application" aria-label="Reloj con cambio por hora">
+    <div id="time" class="time">00:00:00</div>
+    <div id="date" class="date">Fecha</div>
+    <div class="meta">El fondo cambia de color automáticamente cada hora.</div>
+    <div class="controls">
+      <button id="toggleFormat" class="tog">Formato 24h</button>
+      <button id="manual" class="tog">Forzar color</button>
+    </div>
+  </div>
+
+  <script>
+    // Reloj con cambio de fondo cada hora
+    (() => {
+      const elTime = document.getElementById('time');
+      const elDate = document.getElementById('date');
+      const btnToggle = document.getElementById('toggleFormat');
+      const btnManual = document.getElementById('manual');
+
+      let use24 = true;
+      let lastHour = -1;
+
+      function pad(n){ return n.toString().padStart(2,'0'); }
+
+      // Genera un color (o gradiente) basado en la hora (0-23)
+      function colorForHour(h){
+        // Usamos HSL para que los colores sean agradables y distintivos.
+        // Hue: 0..360, Saturation y Lightness fijas; variamos también la luminosidad según hora.
+        const hue = Math.round((h / 24) * 360);
+        const sat = 72; // saturación
+        const light = 18 + Math.round((Math.sin((h/24)*Math.PI*2) + 1) * 6); // ligera variación
+        const accentLight = Math.min(80, 45 + Math.round((h/24)*40));
+        const bg = `hsl(${hue} ${sat}% ${light}%)`;
+        const grad = `linear-gradient(135deg, hsl(${hue} ${sat}% ${Math.max(light-2,12)}%) 0%, hsl(${(hue+30)%360} ${sat-6}% ${accentLight}%) 100%)`;
+        return { bgColor: bg, bgGradient: grad };
+      }
+
+      function setBackgroundForHour(h){
+        const { bgColor, bgGradient } = colorForHour(h);
+        // Aplicamos un gradiente para que sea más visual
+        document.body.style.background = bgGradient;
+        // ajustamos color de texto según luminosidad aproximada
+        const lightness = parseInt(bgColor.match(/\d+%/)[0]);
+        if(lightness > 50) document.body.style.color = '#0b0f12'; else document.body.style.color = '#ffffff';
+      }
+
+      function update(){
+        const now = new Date();
+        let h = now.getHours();
+        const displayH = use24 ? h : ((h % 12) === 0 ? 12 : h % 12);
+        const ampm = use24 ? '' : (h >= 12 ? ' PM' : ' AM');
+        const m = now.getMinutes();
+        const s = now.getSeconds();
+
+        elTime.textContent = `${pad(displayH)}:${pad(m)}:${pad(s)}${ampm}`;
+
+        const days = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        elDate.textContent = `${days[now.getDay()]}, ${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
+
+        if(h !== lastHour){
+          lastHour = h;
+          setBackgroundForHour(h);
+        }
+      }
+
+      // Toggle formato 12/24
+      btnToggle.addEventListener('click', () => {
+        use24 = !use24;
+        btnToggle.textContent = use24 ? 'Formato 24h' : 'Formato 12h';
+        update();
+      });
+
+      // Forzar color (cambia al color de la hora actual inmediatamente)
+      btnManual.addEventListener('click', () => setBackgroundForHour(new Date().getHours()));
+
+      // Iniciar
+      update();
+      // Actualizar cada segundo
+      setInterval(update, 1000);
+
+      // Por si el usuario deja la pestaña en background: cuando vuelve, actualizamos de inmediato
+      document.addEventListener('visibilitychange', () => { if(!document.hidden) update(); });
+
+    })();
+  </script>
+</body>
+</html>
