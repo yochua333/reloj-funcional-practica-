@@ -1,115 +1,94 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Reloj — cambia color cada hora</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reloj con cambio de color</title>
   <style>
-    :root{ --bg:#0b1020; --fg:#fff; }
-    html,body{ height:100%; margin:0; }
-    body{
-      display:flex; align-items:center; justify-content:center;
-      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-      background: var(--bg);
-      color: var(--fg);
-      transition: background-color 900ms ease, background 900ms ease;
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: white;
+      transition: background 1s ease;
     }
-    .card{
-      text-align:center;
-      padding:32px 40px;
-      border-radius:18px;
-      backdrop-filter: blur(6px) saturate(1.2);
-      box-shadow: 0 10px 30px rgba(2,6,23,0.55);
-      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.06));
-      min-width:260px;
+    .container {
+      text-align: center;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 30px;
+      border-radius: 15px;
     }
-    .time{
-      font-size:64px; font-weight:700; letter-spacing:2px; margin:0;
+    .hora {
+      font-size: 60px;
+      font-weight: bold;
     }
-    .date{
-      margin-top:8px; color:rgba(255,255,255,0.85); font-weight:600;
+    .fecha {
+      margin-top: 10px;
+      font-size: 18px;
     }
-    .meta{ margin-top:12px; font-size:13px; color:rgba(255,255,255,0.7); }
-    .controls{ margin-top:14px; display:flex; gap:8px; justify-content:center; }
-    button{ padding:8px 12px; border-radius:10px; border:0; cursor:pointer; font-weight:600; }
-    button.tog{ background:rgba(255,255,255,0.08); color:inherit; }
-    /* small screens */
-    @media (max-width:420px){ .time{ font-size:44px } .card{ padding:22px } }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: rgba(255,255,255,0.4);
+    }
   </style>
 </head>
 <body>
-  <div class="card" role="application" aria-label="Reloj con cambio por hora">
-    <div id="time" class="time">00:00:00</div>
-    <div id="date" class="date">Fecha</div>
-    <div class="meta">El fondo cambia de color automáticamente cada hora o cuando tú quieras.</div>
-    <div class="controls">
-      <button id="toggleFormat" class="tog">Formato 24h</button>
-      <button id="manual" class="tog">Cambiar color</button>
-    </div>
+  <div class="container">
+    <div id="hora" class="hora">00:00:00</div>
+    <div id="fecha" class="fecha"></div>
+    <button id="forzarColor">Forzar color</button>
   </div>
 
   <script>
-    (() => {
-      const elTime = document.getElementById('time');
-      const elDate = document.getElementById('date');
-      const btnToggle = document.getElementById('toggleFormat');
-      const btnManual = document.getElementById('manual');
+    const hora = document.getElementById('hora');
+    const fecha = document.getElementById('fecha');
+    const boton = document.getElementById('forzarColor');
+    let ultimoColor = "";
 
-      let use24 = true;
-      let lastHour = -1;
+    function actualizarReloj() {
+      const ahora = new Date();
+      const h = ahora.getHours().toString().padStart(2, '0');
+      const m = ahora.getMinutes().toString().padStart(2, '0');
+      const s = ahora.getSeconds().toString().padStart(2, '0');
+      hora.textContent = `${h}:${m}:${s}`;
 
-      function pad(n){ return n.toString().padStart(2,'0'); }
+      const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+      const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      fecha.textContent = `${dias[ahora.getDay()]}, ${ahora.getDate()} de ${meses[ahora.getMonth()]} de ${ahora.getFullYear()}`;
 
-      function colorForHour(h){
-        const hue = Math.round((h / 24) * 360);
-        const sat = 72;
-        const light = 18 + Math.round((Math.sin((h/24)*Math.PI*2) + 1) * 6);
-        const accentLight = Math.min(80, 45 + Math.round((h/24)*40));
-        const grad = `linear-gradient(135deg, hsl(${hue} ${sat}% ${Math.max(light-2,12)}%) 0%, hsl(${(hue+30)%360} ${sat-6}% ${accentLight}%) 100%)`;
-        return grad;
+      // cambia color automáticamente cada hora
+      if (ahora.getMinutes() === 0 && ahora.getSeconds() === 0) {
+        cambiarColor();
       }
+    }
 
-      function setBackgroundForHour(h){
-        const grad = colorForHour(h);
-        document.body.style.background = grad;
-      }
+    function cambiarColor() {
+      let color;
+      do {
+        color = `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
+      } while (color === ultimoColor); // evita repetir el mismo color
+      ultimoColor = color;
+      document.body.style.background = color;
+    }
 
-      function update(){
-        const now = new Date();
-        let h = now.getHours();
-        const displayH = use24 ? h : ((h % 12) === 0 ? 12 : h % 12);
-        const ampm = use24 ? '' : (h >= 12 ? ' PM' : ' AM');
-        const m = now.getMinutes();
-        const s = now.getSeconds();
+    boton.addEventListener('click', cambiarColor);
 
-        elTime.textContent = `${pad(displayH)}:${pad(m)}:${pad(s)}${ampm}`;
-
-        const days = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-        const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-        elDate.textContent = `${days[now.getDay()]}, ${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
-
-        if(h !== lastHour){
-          lastHour = h;
-          setBackgroundForHour(h);
-        }
-      }
-
-      btnToggle.addEventListener('click', () => {
-        use24 = !use24;
-        btnToggle.textContent = use24 ? 'Formato 24h' : 'Formato 12h';
-        update();
-      });
-
-      btnManual.addEventListener('click', () => {
-        // Fuerza un color aleatorio al presionar el botón
-        const randomHour = Math.floor(Math.random() * 24);
-        setBackgroundForHour(randomHour);
-      });
-
-      update();
-      setInterval(update, 1000);
-      document.addEventListener('visibilitychange', () => { if(!document.hidden) update(); });
-    })();
+    actualizarReloj();
+    setInterval(actualizarReloj, 1000);
   </script>
 </body>
 </html>
